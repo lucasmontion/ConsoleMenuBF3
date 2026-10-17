@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Console-Style Menu for Battlelog",
+  "version": "1.0.0",
+  "description": "A fan-made, console-style menu for Battlelog (Battlefield 3). Not affiliated with EA or DICE.",
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "background": { "service_worker": "background.js" },
+  "host_permissions": ["https://data1.origin.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://battlelog.battlefield.com/bf3/*", "http://battlelog.battlefield.com/bf3/*"],
+      "js": ["src/data.js", "src/ranks.js", "src/vehicles.js", "src/weapons.js", "src/core.js", "src/mp.js", "src/serverinfo.js", "src/soldier.js", "src/customize.js", "src/joining.js", "src/dogtags.js", "src/records.js", "src/social.js", "src/main.js"],
+      "css": ["page.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["bridge.js", "menu.css"],
+      "matches": ["https://battlelog.battlefield.com/*", "http://battlelog.battlefield.com/*"]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+/* Rules that must apply to Battlelog's page itself. The menu's own styles (menu.css) live inside
+   its shadow root, so nothing here can affect the menu and the menu can't affect Battlelog. */
+
+html.bf3m-active, html.bf3m-active body { overflow: hidden !important; }
+
+/* The shadow root host: covers the page while the menu is shown. */
+#bf3m-host { position: fixed !important; inset: 0 !important; z-index: 2147483000 !important; display: block !important; }
+#bf3m-host.bf3m-host-hidden { display: none !important; }
+
+.bf3m-hiddenframe {
+  position: fixed !important; left: -20000px !important; top: 0 !important;
+  width: 1280px !important; height: 900px !important; border: 0 !important;
+  visibility: hidden !important; pointer-events: none !important;
+}
+
+/* Battlelog's own dialogs (server password, queue, errors) must stay usable above the menu. */
+html.bf3m-active #dialog-container { position: relative !important; z-index: 2147483001 !important; }
+
+/* ---------- Return button on Battlelog ---------- */
+#bf3m-return {
+  position: fixed; left: 16px; bottom: 16px; z-index: 2147483000;
+  font: 600 15px "Bahnschrift", "Arial Narrow", sans-serif; text-transform: uppercase;
+  background: #eef3f7; color: #0b0d10; border: 0; border-right: 4px solid #ff8a1f;
+  padding: 8px 14px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+}
+#bf3m-return:hover { filter: brightness(.9); }
