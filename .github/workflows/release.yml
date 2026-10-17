@@ -16,15 +16,14 @@ jobs:
       - name: Check the tag matches manifest.json
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          VER=$(jq -r .version Menu/manifest.json)
+          VER=$(jq -r .version manifest.json)
           if [ "$TAG" != "$VER" ]; then
             echo "Tag v$TAG does not match manifest version $VER"; exit 1
           fi
 
       - name: Build the extension zip
         run: |
-          cd Menu
-          zip -r "../console-style-menu-for-battlelog-${GITHUB_REF_NAME#v}.zip" \
+          zip -r "console-style-menu-for-battlelog-${GITHUB_REF_NAME#v}.zip" \
             manifest.json background.js bridge.js menu.css page.css \
             README.md LICENSE PRIVACY.md CHANGELOG.md src icons
 
