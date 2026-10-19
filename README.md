@@ -23,7 +23,7 @@ comes from your own Battlelog account and Battlelog's public server list.
 | **Joining** | A console-style loading screen that follows Battlelog's join progress (queue position, connecting, loading, in game) and returns to the menu when you quit the game |
 | **My Soldier** | Stats, ribbons, medals, progression (kits, vehicles, rank), Customize (edit loadouts for kits, land and air vehicles), My Dog Tag (equip left/right tags), Assignments, Unlocks, Game Activity |
 | **Friends / Invites** | Friends online and in game (join their server), game and co-op invites, friend requests (accept / decline) |
-| **Options** | Menu sounds, show menu on start, mirror the main-menu art, reset server filters |
+| **Options** | Menu sounds, menu music volume, play intro on start, watch intro, show menu on start, mirror the main-menu art, reset server filters |
 
 ### Controls
 
@@ -50,6 +50,7 @@ analytics and no tracking. It never sees your password.**
 | Permission | Why |
 |---|---|
 | Runs on `battlelog.battlefield.com/bf3/*` | To draw the menu on Battlelog. It runs on **no other website**. |
+| Storage | To save your menu settings in the extension's own storage, so they are kept between visits. |
 | Access to `data1.origin.com` | To download the menu's background picture from **EA's own image server** (see below). Nothing else is requested there. |
 
 It does **not** ask for your browsing history, your tabs, your other websites, downloads, clipboard or
@@ -61,8 +62,9 @@ Only these, and only in your browser:
 
 | What | Where | Contents |
 |---|---|---|
-| `bf3m.prefs` | Battlelog's local storage | Your menu settings: sounds on/off, show on start, mirror art, server filters |
+| `bf3m.prefs` | The extension's own storage (stays until you remove the extension) | Your menu settings: sounds on/off, music volume, intro on/off, show on start, mirror art, server filters |
 | `bf3m.hidden` | Battlelog's session storage (this tab only, cleared when it closes) | Whether you hid the menu with Alt+M |
+| `bf3m.introSeen` | Battlelog's session storage (this tab only, cleared when it closes) | Whether the intro already played, so it plays once per tab |
 | Background picture | The extension's own cache | EA's Battlefield 3 artwork, re-downloaded only if the cache is cleared or after 30 days |
 
 Your soldier name, stats, friends, loadouts and so on are **only kept in memory** while the page is open,

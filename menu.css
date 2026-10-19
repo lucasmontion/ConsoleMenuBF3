@@ -46,6 +46,22 @@
 .bf3m-enter { animation: bf3m-in .3s ease; }
 @keyframes bf3m-in { from { opacity: 0; transform: translateX(calc(-1 * var(--u))); } to { opacity: 1; transform: none; } }
 
+/* ---------- Start-up intro ---------- */
+.bf3m-intro { position: absolute; inset: 0; z-index: 50; background: #000; transition: opacity .5s ease; }
+.bf3m-intro video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .3s ease; }
+.bf3m-intro.bf3m-intro-playing { cursor: none; }
+.bf3m-intro.bf3m-intro-playing video { opacity: 1; }
+.bf3m-intro-title {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(4 * var(--u));
+  opacity: 0; transition: opacity .4s ease; pointer-events: none;
+}
+.bf3m-intro.bf3m-intro-ask .bf3m-intro-title { opacity: 1; }
+.bf3m-intro-title .bf3m-logo { margin: 0; transform-origin: center; }
+.bf3m-intro-press { font-size: calc(2.8 * var(--u)); color: var(--dim); animation: bf3m-blink 1.6s ease-in-out infinite; }
+@keyframes bf3m-blink { 50% { opacity: .25; } }
+.bf3m-intro .bf3m-foot { left: auto; font-size: calc(2.2 * var(--u)); opacity: .85; }
+.bf3m-intro.bf3m-intro-out { opacity: 0; pointer-events: none; }
+
 /* ---------- Main menu ---------- */
 .bf3m-main { position: absolute; left: 22.3%; top: 22.5%; }
 .bf3m-logo {
@@ -58,6 +74,9 @@
   position: relative; font-size: calc(5.1 * var(--u)); line-height: calc(5.3 * var(--u)); height: calc(5.6 * var(--u)); padding: 0 0 0 calc(.9 * var(--u)); margin-left: calc(-.9 * var(--u));
   white-space: nowrap; text-shadow: 0 calc(.2 * var(--u)) calc(.6 * var(--u)) rgba(0,0,0,.8);
 }
+/* Like the console: the game modes are big, the rest (My Soldier, Options…) a smaller second tier. */
+.bf3m-item.bf3m-item-sm { font-size: calc(3.1 * var(--u)); line-height: calc(3.3 * var(--u)); height: calc(3.5 * var(--u)); }
+.bf3m-item:not(.bf3m-item-sm) + .bf3m-item-sm { margin-top: calc(.5 * var(--u)); }
 .bf3m-item.bf3m-sel { background: var(--white); color: #0b0d10; text-shadow: none; }
 .bf3m-item.bf3m-sel::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: calc(.6 * var(--u)); background: var(--orange); }
 .bf3m-user { position: absolute; right: calc(3 * var(--uw)); top: calc(3 * var(--u)); font-size: calc(2.2 * var(--u)); color: var(--dim); }
@@ -138,8 +157,12 @@
 .bf3m-filterbar .bf3m-fhead, .bf3m-fgrid .bf3m-fhead { background: var(--bar); padding: calc(.4 * var(--u)) calc(1 * var(--u)); font-size: calc(2 * var(--u)); color: rgba(255,255,255,.85); border-right: calc(.2 * var(--u)) solid rgba(0,0,0,.4); }
 .bf3m-fval { padding: calc(.3 * var(--u)) calc(1 * var(--u)); font-size: calc(2 * var(--u)); background: rgba(8,14,22,.7); color: var(--dim); border-right: calc(.2 * var(--u)) solid rgba(0,0,0,.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.bf3m-thead, .bf3m-trow { display: grid; grid-template-columns: calc(4 * var(--u)) 1fr calc(15 * var(--u)) calc(28 * var(--u)) calc(12 * var(--u)) calc(4 * var(--u)) calc(11 * var(--u)); gap: calc(1 * var(--u)); padding: 0 calc(1 * var(--u)); align-items: center; }
+.bf3m-thead, .bf3m-trow { display: grid; grid-template-columns: calc(4 * var(--u)) 1fr calc(15 * var(--u)) calc(28 * var(--u)) calc(12 * var(--u)) calc(4 * var(--u)) calc(8.5 * var(--u)); gap: calc(1 * var(--u)); padding: 0 calc(1 * var(--u)); align-items: center; }
 .bf3m-thead { background: var(--bar); font-size: calc(2 * var(--u)); line-height: calc(3.6 * var(--u)); color: rgba(255,255,255,.85); }
+/* Thin dark separators between the column headers, centred in the column gap, like the console. */
+.bf3m-thead > * { position: relative; align-self: stretch; }
+.bf3m-thead > * + *::before { content: ""; position: absolute; top: 0; bottom: 0; left: calc(-.6 * var(--u)); width: calc(.2 * var(--u)); background: rgba(0,0,0,.4); }
+.bf3m-starhead { text-align: center; }
 .bf3m-trow { height: calc(4.2 * var(--u)); font-size: calc(2.4 * var(--u)); background: var(--row); border-top: calc(.15 * var(--u)) solid rgba(0,0,0,.35); cursor: pointer; text-transform: none; }
 .bf3m-trow:nth-child(even) { background: var(--row2); }
 .bf3m-trow > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -433,7 +456,9 @@
 .bf3m-trow.bf3m-sel .bf3m-bars i.bf3m-on { background: #111; }
 .bf3m-ms { min-width: calc(3.4 * var(--u)); text-align: right; font-size: calc(2.1 * var(--u)); }
 .bf3m-pinghead { justify-content: flex-end; }
-.bf3m-ranked, .bf3m-rankedhead { text-align: center; font-size: calc(2.4 * var(--u)); transform: scaleX(1.4); }
+.bf3m-ranked { display: flex; align-items: center; justify-content: center; }
+.bf3m-ranked svg { display: block; width: calc(1.7 * var(--u)); height: auto; }
+.bf3m-rankedhead svg { width: calc(1.5 * var(--u)); }
 
 /* ---------- Server Settings ---------- */
 .bf3m-si { display: grid; grid-template-columns: 1fr calc(48 * var(--u)); gap: calc(2 * var(--u)); height: 100%; }

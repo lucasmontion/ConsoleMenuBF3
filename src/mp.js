@@ -72,6 +72,13 @@
     onUpdate && onUpdate();
   }
   M.ensurePing = ensurePing;
+  // The console's ranked-server chevron (a bold ^), drawn so it stays sharp and follows the text colour.
+  const RANKED_SVG = '<svg viewBox="0 0 14 9" aria-hidden="true"><path fill="currentColor" d="M7 0l7 6.4L11.6 9 7 4.8 2.4 9 0 6.4z"/></svg>';
+  M.rankedIcon = (on, cls) => {
+    const s = el('span', cls || 'bf3m-ranked');
+    if (on) { s.innerHTML = RANKED_SVG; s.title = 'Ranked server'; }
+    return s;
+  };
   // Five signal bars + the number, like the console. ms: number, null = measuring, -1 = unavailable.
   M.pingBars = (ms, header) => {
     const c = el('span', 'bf3m-ping' + (header ? ' bf3m-pinghead' : ''));
@@ -143,8 +150,9 @@
     const top = el('div', 'bf3m-mp-top');
     const table = el('div', 'bf3m-table bf3m-servers');
     const head = el('div', 'bf3m-thead');
-    ['★', 'Name', 'Players', 'Map', 'Mode'].forEach((t) => head.append(el('span', null, t)));
-    head.append(el('span', 'bf3m-rankedhead', '^'), M.pingBars(null, true));
+    head.append(el('span', 'bf3m-starhead', '★'));
+    ['Name', 'Players', 'Map', 'Mode'].forEach((t) => head.append(el('span', null, t)));
+    head.append(M.rankedIcon(true, 'bf3m-ranked bf3m-rankedhead'), M.pingBars(null, true));
     const rows = el('div', 'bf3m-tbody');
     table.append(head, rows);
     const pager = el('div', 'bf3m-pager');
@@ -278,7 +286,7 @@
           playersCell(sv),
           el('span', null, sv.map ? D.mapName(sv.map) : ''),
           el('span', null, sv.mapMode ? D.modeShort(sv.mapMode) : ''),
-          el('span', 'bf3m-ranked', sv.ranked ? '^' : ''),
+          M.rankedIcon(sv.ranked),
           pingCell(sv));
         r.addEventListener('mousemove', () => select(i));
         r.addEventListener('click', () => select(i));

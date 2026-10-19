@@ -18,7 +18,8 @@
       ['Credits', () => M.push('credits')],
       ['Quit', () => chrome.runtime.sendMessage({ type: 'quit' })]
     ];
-    const lis = entries.map(([label]) => { const li = el('li', 'bf3m-item', label); ul.append(li); return li; });
+    // The first three (the game modes) are big, the rest small, as on the console.
+    const lis = entries.map(([label], i) => { const li = el('li', 'bf3m-item' + (i > 2 ? ' bf3m-item-sm' : ''), label); ul.append(li); return li; });
     box.append(logo, ul);
     const user = el('div', 'bf3m-user');
     const foot = el('div', 'bf3m-foot');
@@ -61,9 +62,18 @@
     const tabNames = ['Menu', 'About'];
     let tab = 0, list = null;
     const onOff = (v) => (v ? 'On' : 'Off');
+    // Steps the music volume (Enter cycles up and wraps, Left / Right go down / up).
+    const stepMusic = (d) => {
+      const steps = M.MUSIC_STEPS, i = Math.max(0, steps.indexOf(M.prefs.music));
+      M.prefs.music = d ? steps[Math.max(0, Math.min(steps.length - 1, i + d))] : steps[(i + 1) % steps.length];
+      M.updateMusic();
+    };
     const tabs = [
       [
         ['Menu sounds', () => onOff(M.prefs.sounds), () => { M.prefs.sounds = !M.prefs.sounds; }],
+        ['Menu music', () => (M.prefs.music > 0 ? M.prefs.music + '%' : 'Off'), () => stepMusic(0), stepMusic],
+        ['Play intro on start', () => onOff(M.prefs.intro), () => { M.prefs.intro = !M.prefs.intro; }],
+        ['Watch intro', () => '', () => M.playIntro()],
         ['Show menu on start', () => onOff(M.prefs.showOnStart), () => { M.prefs.showOnStart = !M.prefs.showOnStart; }],
         ['Mirror main menu art', () => onOff(M.prefs.mirrorBg), () => { M.prefs.mirrorBg = !M.prefs.mirrorBg; M.applyBgPrefs(); }],
         ['Reset server filters', () => '', () => { M.prefs.filters = { players: 0, modes: [], maps: [], presets: [], ranked: 0, regions: [], showFull: true }; M.toast('Server filters reset'); }],
@@ -95,9 +105,18 @@
       list = M.selectable(rows, {
         onActivate: (i) => {
           M.sfx.select(); tabs[0][i][2](); M.savePrefs();
-          rows.forEach((r, k) => { r.lastChild.textContent = tabs[0][k][1](); });
+          refresh();
         }
       });
+    }
+    function refresh() {
+      [...pg.body.querySelectorAll('.bf3m-optrow')].forEach((r, k) => { r.lastChild.textContent = tabs[0][k][1](); });
+    }
+    function adjust(d) {
+      const step = list && tabs[0][list.index][3];
+      if (!step) return false;
+      M.sfx.move(); step(d); M.savePrefs(); refresh();
+      return true;
     }
     pg.setFooter([['↵', 'Change', null, 'bf3m-k-a'], ['Esc', 'Back', () => M.back(), 'bf3m-k-b']]);
     render();
@@ -109,6 +128,7 @@
         if (!list) return false;
         if (e.key === 'ArrowDown') list.move(1);
         else if (e.key === 'ArrowUp') list.move(-1);
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') return adjust(e.key === 'ArrowRight' ? 1 : -1);
         else if (e.key === 'Enter') list.activate();
         else return false;
         return true;
@@ -136,7 +156,7 @@
       if (M.isShown()) { M.session.hidden = true; M.hide(); } else M.show();
       return;
     }
-    if (!M.isShown()) return;
+    if (!M.isShown() || M.introPlaying) return; // intro.js handles keys while the intro is up
     const focused = M.activeElement();
     const typing = !!focused && focused.tagName === 'INPUT';
     const cur = M.current();
@@ -149,10 +169,15 @@
     if (handled || !typing) e.stopPropagation();
   }, true);
 
-  // ---------- Start ----------
-  M.attach();
-  M.applyBgPrefs();
-  M.push('main');
-  if (M.session.hidden || !M.prefs.showOnStart) M.hide();
-  else M.show();
+  // ---------- Start (once the saved settings are loaded) ----------
+  M.prefsReady.then(() => {
+    M.attach();
+    M.applyBgPrefs();
+    M.push('main');
+    if (M.session.hidden || !M.prefs.showOnStart) M.hide();
+    else {
+      if (M.shouldPlayIntro()) M.playIntro();
+      M.show();
+    }
+  });
 })();

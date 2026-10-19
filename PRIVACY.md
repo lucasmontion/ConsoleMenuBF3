@@ -41,8 +41,9 @@ The extension stores only the following, locally in your browser:
 
 | Data | Purpose | Location |
 |---|---|---|
-| Menu settings (sounds on/off, show menu on start, mirror artwork, server-browser filters) | Remember your choices | Your browser's local storage for battlelog.battlefield.com |
+| Menu settings (sounds on/off, music volume, intro on/off, show menu on start, mirror artwork, server-browser filters) | Remember your choices | The extension's own storage in your browser (deleted when you remove the extension) |
 | Whether you hid the menu (Alt+M) | Keep the menu hidden in that tab | Session storage (deleted when the tab closes) |
+| Whether the intro already played | Play the intro only once per tab | Session storage (deleted when the tab closes) |
 | The menu's background picture (Battlefield 3 artwork from EA's server) | Avoid downloading it every time | The extension's own cache (refreshed every 30 days) |
 
 None of this is personal information, and none of it leaves your device.
@@ -66,6 +67,7 @@ does not send them anything beyond what Battlelog itself sends when you use its 
 ## Permissions
 
 - **Access to battlelog.battlefield.com/bf3/**: to show the menu on Battlelog. The extension runs on no other site.
+- **Storage**: to save your menu settings in your browser, in the extension's own storage.
 - **Access to data1.origin.com**: to download the background picture.
 
 The extension does not request access to your browsing history, other websites, tabs, downloads or clipboard.

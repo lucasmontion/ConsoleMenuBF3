@@ -25,7 +25,7 @@ jobs:
         run: |
           zip -r "console-style-menu-for-battlelog-${GITHUB_REF_NAME#v}.zip" \
             manifest.json background.js bridge.js menu.css page.css \
-            README.md LICENSE PRIVACY.md CHANGELOG.md src icons
+            README.md LICENSE PRIVACY.md CHANGELOG.md src icons audio video
 
       - name: Create the release
         uses: softprops/action-gh-release@v2

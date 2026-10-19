@@ -20,13 +20,24 @@ var BF3M = window.BF3M || (window.BF3M = {});
     return `${d}d${h}h${m}m`;
   };
 
-  // ---------- Preferences (per browser, convenience only) ----------
+  // ---------- Preferences ----------
+  // Kept in the extension's own storage: Battlelog's local storage is separate for http:// and https://
+  // and is wiped whenever the browser clears site data, so settings kept there seemed to reset.
+  // Settings saved there by older versions are moved over once. Start-up waits for M.prefsReady.
   const PREFS_KEY = 'bf3m.prefs';
-  M.prefs = Object.assign({
-    sounds: true, showOnStart: true, mirrorBg: true,
+  M.prefs = {
+    sounds: true, music: 50, intro: true, showOnStart: true, mirrorBg: true,
     filters: { players: 0, modes: [], maps: [], presets: [], ranked: 0, regions: [], showFull: true }
-  }, (() => { try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || {}; } catch (e) { return {}; } })());
-  M.savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(M.prefs)); } catch (e) {} };
+  };
+  const oldPrefs = () => { try { return JSON.parse(localStorage.getItem(PREFS_KEY)); } catch (e) { return null; } };
+  M.prefsReady = chrome.storage.local.get(PREFS_KEY).then((r) => {
+    let saved = r[PREFS_KEY];
+    if (!saved && (saved = oldPrefs())) {
+      chrome.storage.local.set({ [PREFS_KEY]: saved }).then(() => { try { localStorage.removeItem(PREFS_KEY); } catch (e) {} });
+    }
+    Object.assign(M.prefs, saved);
+  }).catch(() => { Object.assign(M.prefs, oldPrefs()); });
+  M.savePrefs = () => { try { chrome.storage.local.set({ [PREFS_KEY]: M.prefs }).catch(() => {}); } catch (e) {} };
   M.session = {
     get hidden() { try { return sessionStorage.getItem('bf3m.hidden') === '1'; } catch (e) { return false; } },
     set hidden(v) { try { v ? sessionStorage.setItem('bf3m.hidden', '1') : sessionStorage.removeItem('bf3m.hidden'); } catch (e) {} }
@@ -131,12 +142,13 @@ var BF3M = window.BF3M || (window.BF3M = {});
     return `/bf3/soldier/${encodeURIComponent(p.name)}/${page}/${p.id}/pc/`;
   };
 
-  // ---------- Sounds (synthesized, no files) ----------
+  // ---------- Sounds (beeps are synthesized; the menu music is audio/menu-ambient.mp3) ----------
   let audio;
+  const ctx = () => (audio = audio || new AudioContext());
   function beep(freq, dur, type, gain) {
     if (!M.prefs.sounds) return;
     try {
-      audio = audio || new AudioContext();
+      ctx();
       const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
       o.type = type; o.frequency.value = freq;
       g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -149,6 +161,91 @@ var BF3M = window.BF3M || (window.BF3M = {});
     back: () => beep(500, 0.09, 'triangle', 0.07),
     tab: () => beep(1600, 0.05, 'triangle', 0.05)
   };
+
+  // Menu music: decoded once and looped with Web Audio, so the seam has no gap (an <audio loop>
+  // stutters on MP3s). Plays while the menu is shown, except on screens marked `quiet` (joining / in game).
+  // Browsers only allow sound after the first key press or click on the page.
+  M.MUSIC_STEPS = [0, 25, 50, 75, 100];
+  const FADE = 0.8;
+  const music = { track: null, loading: null, src: null, gain: null, startedAt: 0, offset: 0 };
+  let unlocked = !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
+  const musicLevel = () => Math.pow((M.prefs.music || 0) / 100, 2);
+
+  // Trims the decoder's silent edges and crossfades the tail into the head so the loop point is seamless.
+  function seamless(buf) {
+    const chans = [...Array(buf.numberOfChannels)].map((_, c) => buf.getChannelData(c));
+    const loud = (i) => chans.some((d) => Math.abs(d[i]) > 1e-4);
+    let start = 0, end = buf.length;
+    while (start < end && !loud(start)) start++;
+    while (end > start && !loud(end - 1)) end--;
+    const xf = Math.min(Math.round(buf.sampleRate * 0.25), Math.floor((end - start) / 4));
+    for (const d of chans) {
+      for (let k = 0; k < xf; k++) {
+        const t = k / xf;
+        d[start + k] = d[start + k] * t + d[end - xf + k] * (1 - t);
+      }
+    }
+    return { buf, start: start / buf.sampleRate, end: (end - xf) / buf.sampleRate };
+  }
+  function loadMusic() {
+    if (!music.loading) {
+      music.loading = fetch(chrome.runtime.getURL('audio/menu-ambient.mp3'))
+        .then((r) => r.arrayBuffer())
+        .then((b) => ctx().decodeAudioData(b))
+        .then((buf) => (music.track = seamless(buf)));
+      music.loading.catch(() => { music.loading = null; });
+    }
+    return music.loading;
+  }
+  function stopMusic() {
+    if (!music.src) return;
+    const { src, gain, track } = music, t = audio.currentTime;
+    const len = track.end - track.start;
+    music.offset = ((music.offset + t - music.startedAt) % len + len) % len;
+    gain.gain.cancelScheduledValues(t);
+    gain.gain.setValueAtTime(gain.gain.value, t);
+    gain.gain.linearRampToValueAtTime(0, t + FADE);
+    src.stop(t + FADE);
+    music.src = music.gain = null;
+  }
+  const musicWanted = () => {
+    const cur = M.current();
+    return unlocked && M.prefs.music > 0 && M.isShown() && !M.introPlaying && !(cur && cur.quiet);
+  };
+  M.updateMusic = function () {
+    if (!musicWanted()) return stopMusic();
+    try { ctx().resume(); } catch (e) { return; }
+    if (music.src) {
+      const t = audio.currentTime;
+      music.gain.gain.cancelScheduledValues(t);
+      music.gain.gain.setValueAtTime(music.gain.gain.value, t);
+      music.gain.gain.linearRampToValueAtTime(musicLevel(), t + 0.2);
+      return;
+    }
+    loadMusic().then((track) => {
+      if (music.src || !musicWanted()) return;
+      const src = audio.createBufferSource(), gain = audio.createGain(), t = audio.currentTime;
+      src.buffer = track.buf;
+      src.loop = true;
+      src.loopStart = track.start;
+      src.loopEnd = track.end;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(musicLevel(), t + FADE * 2);
+      src.connect(gain).connect(audio.destination);
+      src.start(t, track.start + music.offset);
+      Object.assign(music, { src, gain, startedAt: t });
+    }, () => {});
+  };
+  // Also called by the intro when the browser let it play with sound (no key press needed then).
+  const unlock = M.unlockAudio = () => {
+    if (unlocked) return;
+    unlocked = true;
+    window.removeEventListener('keydown', unlock, true);
+    window.removeEventListener('pointerdown', unlock, true);
+    M.updateMusic();
+  };
+  window.addEventListener('keydown', unlock, true);
+  window.addEventListener('pointerdown', unlock, true);
 
   // ---------- Host, shadow root, root, toast ----------
   // The menu lives in a closed shadow root: changes inside it are invisible to Battlelog's scripts and
@@ -316,6 +413,7 @@ var BF3M = window.BF3M || (window.BF3M = {});
     void scr.node.offsetWidth;
     scr.node.classList.add('bf3m-enter');
     scr.onShow && scr.onShow();
+    M.updateMusic();
   }
   function instance(id, params) {
     const e = M.screens[id];
@@ -362,6 +460,7 @@ var BF3M = window.BF3M || (window.BF3M = {});
     M.refreshState();
     const cur = M.current();
     if (cur && cur.onShow) cur.onShow();
+    M.updateMusic();
   };
   M.hide = function () {
     M.root.classList.remove('bf3m-in');
@@ -369,6 +468,7 @@ var BF3M = window.BF3M || (window.BF3M = {});
     M.host.classList.add('bf3m-host-hidden');
     document.documentElement.classList.remove('bf3m-active');
     returnBtn.style.display = '';
+    M.updateMusic();
   };
   M.goBattlelog = function (path) {
     M.session.hidden = true;

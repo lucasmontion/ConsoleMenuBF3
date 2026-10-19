@@ -142,7 +142,7 @@
     }
 
     return {
-      node: pg.node,
+      node: pg.node, quiet: true,
       setParams(p) { params = p || {}; },
       onShow() {
         seenActive = seenGame = finished = false;
