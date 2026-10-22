@@ -2,6 +2,11 @@
 
 All notable changes to Console-Style Menu for Battlelog.
 
+## Unreleased
+
+- Joining screen: when the server is full it now shows your position in the server queue (and whether
+  premium priority applies) instead of "Still waiting for Battlelog…". Esc leaves the queue.
+
 ## 1.1.0
 
 - Menu settings are now saved in the extension's own storage, so they no longer reset when Battlelog

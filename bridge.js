@@ -134,7 +134,23 @@
     if (dc) for (var i = 0; i < dc.children.length; i++) { var c = dc.children[i]; if (c.offsetWidth > 0 && c.offsetHeight > 0) open = true; }
     out.dialog = open;
     out.dialogText = open ? String(dc.innerText || '').replace(/\s+/g, ' ').slice(0, 200) : '';
+    // Battlelog's server queue doesn't show up in launcherState, only in its blue launch bar
+    // ("Position in queue: 5 - Premium prioritized"), so read the position from there.
+    var q = queueFromBar();
+    if (q) { out.queuePosition = q.position; out.queueText = q.text; }
+    out.inQueue = !!q || (window.launcher && launcher.STATE && ls.gameState === launcher.STATE.IN_QUEUE) || false;
     return out;
+  }
+  function queueFromBar() {
+    var x = document.evaluate("//*[contains(translate(text(),'QUEU','queu'),'queue')]", document.body, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (var i = 0; i < x.snapshotLength; i++) {
+      var n = x.snapshotItem(i);
+      if (n.closest && n.closest('#dialog-container, script, style')) continue;
+      var t = String(n.textContent || '').replace(/\s+/g, ' ').trim();
+      var m = /queue\s*:?\s*(\d+)/i.exec(t);
+      if (m) return { position: +m[1], text: t.slice(0, 120) };
+    }
+    return null;
   }
 
   // ---------- Assignments and activity (translated with Battlelog's own text table) ----------
@@ -310,7 +326,7 @@
           launcher.isGameRunning(games.BF3, function (running) { reply(m.id, { running: !!running }); });
           break;
         case 'cancel':
-          if (gamemanager.launcherState && gamemanager.launcherState.gameState === launcher.STATE.IN_QUEUE) gamemanager.leaveQueue();
+          if ((gamemanager.launcherState && gamemanager.launcherState.gameState === launcher.STATE.IN_QUEUE) || queueFromBar()) gamemanager.leaveQueue();
           else gamemanager.cancelGameLaunch(games.BF3);
           reply(m.id, { ok: true });
           break;

@@ -85,6 +85,15 @@
       const label = r.pretty ? r.pretty.replace(/\.\.\.$/, '…') : (LABELS[st] || st);
       const queueKey = Object.keys(r).find((k) => /queue/i.test(k) && typeof r[k] === 'number');
       const dialogHint = r.dialog ? 'Battlelog is asking something: answer the box on screen.' : '';
+      const premium = /premium/i.test(r.queueText || '') ? '  ·  Premium prioritized' : '';
+
+      if (r.inQueue && !IN_GAME.includes(st)) {
+        seenActive = true;
+        const pos = r.queuePosition || (queueKey && r[queueKey]);
+        show(pos ? `Position ${pos} in queue` : LABELS.State_InQueue, { detail: dialogHint || `Server is full: you'll join when a slot opens.${premium}` });
+        setFooter(false);
+        return;
+      }
 
       if (st === 'State_Error') {
         show(LABELS.State_Error, { spin: false, error: true, detail: r.dialogText || label });
